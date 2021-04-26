@@ -52,11 +52,10 @@ class Shopify:
         }
         orders = list()
         r = requests.get(url=self.base_url + api_endpoint,headers=self.headers,params=params)
+        if not r.links:
+            return orders
         next_url = r.links["next"]["url"]
         orders.append(r.json()['orders'])
-
-        if not next_url:
-            return orders
 
         parsed = urlparse.urlparse(next_url)
         page_about = parse_qs(parsed.query)['page_info']
