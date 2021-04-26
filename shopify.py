@@ -8,8 +8,9 @@ load_dotenv()
 class Shopify:
     api_key = os.getenv('SHOPIFY_API_KEY')
     api_password = os.getenv('SHOPIFY_API_PW')
+    shopify_domain = os.getenv('SHOPIFY_DOMAIN')
     api_version = '2021-04'
-    base_url = f"https://{api_key}:{api_password}@meet-harmony-ltd.myshopify.com/admin/api/{api_version}/"
+    base_url = f"https://{api_key}:{api_password}@{shopify_domain}.myshopify.com/admin/api/{api_version}/"
 
     def __init__(self):
         self.headers = {
