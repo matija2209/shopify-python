@@ -4,6 +4,8 @@ def delete_unfulfilled_orders():
     sh = Shopify()
     orders = sh.get_orders()
     print(f"deleting {len(orders)} orders\n")
+    if not orders:
+        return None
     for order in orders:
         sh.delete_order(order['id'])
 

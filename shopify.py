@@ -4,7 +4,6 @@ import urllib.parse as urlparse
 from urllib.parse import parse_qs
 load_dotenv()
 
-
 class Shopify:
     api_key = os.getenv('SHOPIFY_API_KEY')
     api_password = os.getenv('SHOPIFY_API_PW')
@@ -53,17 +52,16 @@ class Shopify:
         orders = list()
         r = requests.get(url=self.base_url + api_endpoint,headers=self.headers,params=params)
         if not r.links:
-            return orders
+            return r.json()['orders']
         next_url = r.links["next"]["url"]
-        orders.append(r.json()['orders'])
 
         parsed = urlparse.urlparse(next_url)
         page_about = parse_qs(parsed.query)['page_info']
-
+        count = 1
         while True:
-            params = {'page_info' : page_about[0]}
-            
-            r = requests.get(url=self.base_url + api_endpoint,headers=self.headers,params=params)
+            print(f"extracting orders from page {count}")
+            url = self.base_url + api_endpoint +'?page_info='+page_about[0]
+            r = requests.get(url=url,headers=self.headers)
 
             if r.status_code == 200:
                 orders.append(r.json()['orders'])
@@ -71,8 +69,12 @@ class Shopify:
                 raise Exception("not rerieved")
             try:
                 next_url = r.links["next"]["url"]
+                parsed = urlparse.urlparse(next_url)
+                page_about = parse_qs(parsed.query)['page_info']
             except:
                 break
+            time.sleep(1)
+            count += 1
         return [x for x in orders for x in x]
 
 
