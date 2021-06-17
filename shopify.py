@@ -17,6 +17,12 @@ class Shopify:
             'limit': "250"
         }
 
+    def get_all_pages(self):
+        api_endpoint = 'pages.json'
+        r = requests.get(url=self.base_url + api_endpoint,headers=self.headers)
+        data = r.json()
+        return data
+        
     def get_all_products(self):
         api_endpoint = "products.json"
         r = requests.get(url=self.base_url + api_endpoint,
