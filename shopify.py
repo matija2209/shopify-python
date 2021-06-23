@@ -28,7 +28,33 @@ class Shopify:
         r = requests.get(url=self.base_url + api_endpoint,
                          headers=self.headers)
         data = r.json()
-        return data['products']
+        products = list()
+        if not r.links:
+            return r.json()['products']
+        products.append(r.json()['products'])
+        next_url = r.links["next"]["url"]
+
+        parsed = urlparse.urlparse(next_url)
+        page_about = parse_qs(parsed.query)['page_info']
+        count = 1
+        while True:
+            print(f"extracting orders from page {count}")
+            url = self.base_url + api_endpoint +'?page_info='+page_about[0]
+            r = requests.get(url=url,headers=self.headers)
+
+            if r.status_code == 200:
+                products.append(r.json()['products'])
+            else:
+                raise Exception("not rerieved")
+            try:
+                next_url = r.links["next"]["url"]
+                parsed = urlparse.urlparse(next_url)
+                page_about = parse_qs(parsed.query)['page_info']
+            except:
+                break
+            time.sleep(1)
+            count += 1
+        return [x for x in products for x in x]
 
     def get_all_variants(self, product_id):
         api_endpoint = f"products/{product_id}/variants.json"
@@ -49,6 +75,16 @@ class Shopify:
                          data=json.dumps(data), headers=self.headers)
         return r.status_code
 
+    def update_product_desc(self,id,desc):
+        api_endpoint = f'/products/{id}.json'
+        data = {
+            "product": {
+                "body_html": desc
+            }
+        }
+        r = requests.put(url=self.base_url + api_endpoint,
+                         data=json.dumps(data), headers=self.headers)
+
     # https://shopify.dev/docs/admin-api/rest/reference/orders/order#index-2021-04
     def get_orders(self):
         api_endpoint = f"orders.json"
@@ -59,7 +95,9 @@ class Shopify:
         r = requests.get(url=self.base_url + api_endpoint,headers=self.headers,params=params)
         if not r.links:
             return r.json()['orders']
+        
         next_url = r.links["next"]["url"]
+        orders.append(r.json()['orders'])
 
         parsed = urlparse.urlparse(next_url)
         page_about = parse_qs(parsed.query)['page_info']
