@@ -5,17 +5,27 @@ from urllib.parse import parse_qs
 load_dotenv()
 
 class Shopify:
-    api_key = os.getenv('SHOPIFY_API_KEY')
-    api_password = os.getenv('SHOPIFY_API_PW')
-    shopify_domain = os.getenv('SHOPIFY_DOMAIN')
-    api_version = '2021-04'
-    base_url = f"https://{api_key}:{api_password}@{shopify_domain}.myshopify.com/admin/api/{api_version}/"
 
-    def __init__(self):
+    def __init__(self,version='uk'):
         self.headers = {
             'Content-Type': 'application/json',
             'limit': "250"
         }
+        self.version = version
+        self.api_password = None
+        self.shopify_domain = None
+        self.api_version = None
+        self.base_url = None
+        self.api_key = None
+
+        self.create_auth()
+
+    def create_auth(self):
+        self.api_key = os.getenv('SHOPIFY_API_KEY') if self.version == 'UK' else os.getenv('SHOPIFY_EU_API_KEY')
+        self.api_password = os.getenv('SHOPIFY_API_PW') if self.version == 'UK' else os.getenv('SHOPIFY_EU_API_PW')
+        self.shopify_domain = os.getenv('SHOPIFY_DOMAIN') if self.version == 'UK' else os.getenv('SHOPIFY_EU_DOMAIN')
+        self.api_version = '2021-04'
+        self.base_url = f"https://{self.api_key}:{self.api_password}@{self.shopify_domain}.myshopify.com/admin/api/{self.api_version}/"
 
     def update_page(self,data):
         api_endpoint = f"pages/{data['id']}.json"          
@@ -131,7 +141,7 @@ class Shopify:
         }
         r = requests.put(url=self.base_url + api_endpoint,
                          data=json.dumps(data), headers=self.headers)
-
+        r
     # https://shopify.dev/docs/admin-api/rest/reference/orders/order#index-2021-04
     def get_orders(self):
         api_endpoint = f"orders.json"
