@@ -17,11 +17,58 @@ class Shopify:
             'limit': "250"
         }
 
+    def update_page(self,data):
+        api_endpoint = f"pages/{data['id']}.json"          
+        payload = {
+            "page": {
+                "id": data['id'],
+                "body_html": data['body_html']
+            }
+        }
+        r = requests.put(url=self.base_url + api_endpoint, data=json.dumps(payload),headers=self.headers)
+        res = r.json()
+
     def get_all_pages(self):
-        api_endpoint = 'pages.json'
-        r = requests.get(url=self.base_url + api_endpoint,headers=self.headers)
+        # api_endpoint = 'pages.json'
+        # r = requests.get(url=self.base_url + api_endpoint,headers=self.headers)
+        # data = r.json()
+        # return data
+        api_endpoint = "pages.json"
+        r = requests.get(url=self.base_url + api_endpoint,
+                         headers=self.headers)
         data = r.json()
-        return data
+        pages = list()
+        if not r.links:
+            return r.json()['pages']
+        pages.append(r.json()['pages'])
+        next_url = r.links["next"]["url"]
+
+        parsed = urlparse.urlparse(next_url)
+        page_about = parse_qs(parsed.query)['page_info']
+        count = 1
+        while True:
+            print(f"extracting orders from page {count}")
+            url = self.base_url + api_endpoint +'?page_info='+page_about[0]
+            r = requests.get(url=url,headers=self.headers)
+
+            if r.status_code == 200:
+                pages.append(r.json()['pages'])
+            else:
+                raise Exception("not rerieved")
+            try:
+                next_url = r.links["next"]["url"]
+                parsed = urlparse.urlparse(next_url)
+                page_about = parse_qs(parsed.query)['page_info']
+            except:
+                break
+            time.sleep(1)
+            count += 1
+
+        pages = [x for x in pages for x in x]
+        with open("pages_data.csv",mode="a") as file:
+            pd.DataFrame(pages).to_csv('pages_data.csv')
+
+        return pages
         
     def get_all_products(self):
         api_endpoint = "products.json"
