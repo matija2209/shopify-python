@@ -80,6 +80,45 @@ class Shopify:
 
         return pages
         
+    def get_all_comments_per_blog(self):
+        api_endpoint = 'comments.json'
+        r = requests.get(url=self.base_url + api_endpoint,
+                         headers=self.headers)
+        data = r.json()
+        comments = list()
+        if not r.links:
+            return r.json()['comments']
+        comments.append(r.json()['comments'])
+        next_url = r.links["next"]["url"]
+
+        parsed = urlparse.urlparse(next_url)
+        page_about = parse_qs(parsed.query)['page_info']
+        count = 1
+        while True:
+            print(f"extracting comments from page {count}")
+            url = self.base_url + api_endpoint +'?page_info='+page_about[0]
+            r = requests.get(url=url,headers=self.headers)
+
+            if r.status_code == 200:
+                comments.append(r.json()['comments'])
+            else:
+                raise Exception("not rerieved")
+            try:
+                next_url = r.links["next"]["url"]
+                parsed = urlparse.urlparse(next_url)
+                page_about = parse_qs(parsed.query)['page_info']
+            except:
+                break
+            count += 1
+        return [x for x in comments for x in x]
+
+    def remove_comment(self,id):
+        api_endpoint = f"comments/{id}/remove.json"
+        r = requests.post(url=self.base_url + api_endpoint,
+                         headers=self.headers)
+        time.sleep(0.2)
+        print(f"Comment {id} removed: {r.status_code}")      
+
     def get_all_products(self):
         api_endpoint = "products.json"
         r = requests.get(url=self.base_url + api_endpoint,
@@ -160,7 +199,7 @@ class Shopify:
         page_about = parse_qs(parsed.query)['page_info']
         count = 1
         while True:
-            print(f"extracting orders from page {count}")
+            print(f"\t- extracting orders from page {count}")
             url = self.base_url + api_endpoint +'?page_info='+page_about[0]
             r = requests.get(url=url,headers=self.headers)
 
@@ -174,7 +213,7 @@ class Shopify:
                 page_about = parse_qs(parsed.query)['page_info']
             except:
                 break
-            time.sleep(1)
+            time.sleep(0.3)
             count += 1
         return [x for x in orders for x in x]
 

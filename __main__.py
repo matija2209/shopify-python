@@ -1,5 +1,5 @@
 from shopify import Shopify
-import utils,pandas as pd,json,requests,os
+import utils,pandas as pd,json,requests,os,re
 from dotenv import dotenv_values, load_dotenv
 load_dotenv()
 
@@ -13,11 +13,9 @@ def delete_unfulfilled_orders():
         if order['tags'] == 'imported':
             sh.delete_order(order['id'])
 
-
 def pages():
     sh = Shopify()
     sh.get_all_pages()
-
 
 def add_alt_name_to_images():
     
@@ -43,6 +41,13 @@ def save_all_products():
         sh = Shopify(version=country)
         all_products = sh.get_all_products()
         utils.save_to_csv(all_products,f'products_data_{country}.csv')
+
+def remove_spam_comments():
+    sh = Shopify(version="UK")
+    comments = sh.get_all_comments_per_blog()
+    spam = list(filter(lambda x: bool(re.search('zomail|dating',x['email'])),comments))
+    for s in spam:
+        sh.remove_comment(s['id'])
 
 def update_oss_products():
 
@@ -79,9 +84,18 @@ def update_oss_products():
             desc = product['new_body_html']
             sh.update_product_desc(id,desc)
 
+def get_orders_ids_names():
+    countries = ['UK','EU']
+    for country in countries:
+        sh = Shopify(version=country)
+        orders = sh.get_orders()
+        pairs = list(map(lambda x: {'id':x['id'],'name':x['name']},orders))
+        df = pd.DataFrame(pairs).to_csv(f'{country}_ids_names.csv',index=False)
+
 if __name__ == '__main__':
+    get_orders_ids_names()
     # update_oss_products()
-    add_alt_name_to_images
+    # remove_spam_comments()
     # save_all_products()
     # pages()
     # delete_unfulfilled_orders()
